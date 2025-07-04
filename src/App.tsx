@@ -8,6 +8,7 @@ import { PasswordReset } from '@/components/auth/PasswordReset';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Dashboard } from '@/pages/Dashboard';
 import { TailoringPage } from '@/pages/TailoringPage';
+import ResumeEditor from '@/pages/ResumeEditor';
 
 function App() {
   return (
@@ -32,6 +33,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <TailoringPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/resume/:resumeId/edit"
+              element={
+                <ProtectedRoute>
+                  <ResumeEditor />
                 </ProtectedRoute>
               }
             />

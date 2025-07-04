@@ -1,0 +1,73 @@
+.resume-canvas {
+  position: relative;
+  background-color: #f3f4f6;
+  min-height: 100vh;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.resume-paper {
+  max-width: 8.5in;
+  margin: 0 auto;
+  background: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 1in;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 12pt;
+  line-height: 1.5;
+  color: #000;
+}
+
+.resume-section {
+  margin-bottom: 1rem;
+  transition: background-color 0.2s ease;
+}
+
+.resume-section--editable {
+  cursor: pointer;
+}
+
+.resume-section--editable:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.resume-section--selected {
+  background-color: rgba(59, 130, 246, 0.1);
+  outline: 2px solid rgba(59, 130, 246, 0.3);
+  outline-offset: 2px;
+}
+
+.resume-section--header {
+  font-size: 16pt;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.resume-section--summary {
+  font-style: italic;
+  margin-bottom: 1rem;
+}
+
+.resume-section--experience {
+  margin-bottom: 1rem;
+}
+
+.resume-section--skills {
+  margin-bottom: 1rem;
+}
+
+.resume-line {
+  min-height: 1.5em;
+}
+
+/* Highlight selected text */
+::selection {
+  background-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Processing state */
+.resume-canvas--processing .resume-section--editable {
+  pointer-events: none;
+  opacity: 0.7;
+}

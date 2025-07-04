@@ -1,4 +1,4 @@
-/*import React from 'react';
+import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -29,9 +29,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   return <>{children}</>;
-};*/
+};
 
-
+/*
 // Uncomment to require login. 
 import React from 'react';
 
@@ -42,3 +42,4 @@ interface ProtectedRouteProps {
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   return <>{children}</>;  // 🔓 Authentication temporarily bypassed
 };
+*/
