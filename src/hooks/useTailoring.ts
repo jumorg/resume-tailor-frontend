@@ -15,7 +15,7 @@ export const useTailoring = (options: UseTailoringOptions = {}) => {
   const [tailoringId, setTailoringId] = useState<string | null>(null);
   const [status, setStatus] = useState<TailoringStatus | null>(null);
   const [result, setResult] = useState<TailoringResponse | null>(null);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const requestRef = useRef<TailoringRequest | null>(null);
 
   const startTailoring = useCallback(async (request: TailoringRequest) => {
