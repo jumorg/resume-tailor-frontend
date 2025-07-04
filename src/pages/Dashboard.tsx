@@ -3,26 +3,32 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { FileUploadZone } from '@/components/upload/FileUploadZone';
 import { FileUploadProgress } from '@/components/upload/FileUploadProgress';
 import { JobDescriptionInput } from '@/components/upload/JobDescriptionInput';
+import { TailoringProgress } from '@/components/tailoring/TailoringProgress';
+import { TailoringError } from '@/components/tailoring/TailoringError';
 import { Button } from '@/components/common/Button';
 import { useFileUpload } from '@/hooks/useFileUpload';
+import { useTailoring } from '@/hooks/useTailoring';
 
 export const Dashboard: React.FC = () => {
   const resumeUpload = useFileUpload();
   const workHistoryUpload = useFileUpload();
   const [jobDescription, setJobDescription] = useState('');
   const [jobDescriptionError, setJobDescriptionError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { startTailoring, cancelTailoring, retryTailoring, isLoading, error, status } = useTailoring({
+    onError: (error) => {
+      console.error('Tailoring failed:', error);
+    },
+  });
 
   const validateForm = (): boolean => {
     let isValid = true;
 
-    // Validate resume
     if (!resumeUpload.file) {
-      resumeUpload.handleFileSelect(new File([], '')); // Trigger error
+      resumeUpload.handleFileSelect(new File([], ''));
       isValid = false;
     }
 
-    // Validate job description
     if (!jobDescription.trim()) {
       setJobDescriptionError('Job description is required');
       isValid = false;
@@ -41,30 +47,19 @@ export const Dashboard: React.FC = () => {
       return;
     }
 
-    // Ensure resume upload is complete
     if (resumeUpload.isLoading || !resumeUpload.resumeId) {
       return;
     }
 
-    setIsSubmitting(true);
-    
-    try {
-      // TODO: Implement API call to submit tailoring request
-      console.log('Submitting:', {
-        resumeId: resumeUpload.resumeId,
-        workHistoryId: workHistoryUpload.resumeId,
-        jobDescription,
-      });
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // TODO: Navigate to tailoring screen
-    } catch (error) {
-      console.error('Submission error:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    await startTailoring({
+      resumeId: resumeUpload.resumeId,
+      workHistoryId: workHistoryUpload.resumeId || undefined,
+      jobDescription,
+    });
+  };
+
+  const handleCancel = () => {
+    cancelTailoring();
   };
 
   const isFormValid = 
@@ -72,6 +67,41 @@ export const Dashboard: React.FC = () => {
     !resumeUpload.isLoading &&
     resumeUpload.resumeId &&
     jobDescription.trim().length >= 50;
+
+  // Show tailoring progress if processing
+  if (isLoading && status) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-2xl mx-auto mt-12">
+          <TailoringProgress
+            progress={status.progress}
+            message={status.message}
+            estimatedTimeRemaining={status.estimatedTimeRemaining}
+          />
+          <div className="mt-4 text-center">
+            <Button variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Show error state
+  if (error && !isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-2xl mx-auto mt-12">
+          <TailoringError
+            error={error}
+            onRetry={retryTailoring}
+            onCancel={() => window.location.reload()}
+          />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -84,7 +114,6 @@ export const Dashboard: React.FC = () => {
         </div>
 
         <div className="space-y-6">
-          {/* Resume Upload */}
           {resumeUpload.isLoading ? (
             <FileUploadProgress
               percentage={resumeUpload.uploadProgress}
@@ -102,7 +131,6 @@ export const Dashboard: React.FC = () => {
             />
           )}
 
-          {/* Work History Upload */}
           {workHistoryUpload.isLoading ? (
             <FileUploadProgress
               percentage={workHistoryUpload.uploadProgress}
@@ -119,7 +147,6 @@ export const Dashboard: React.FC = () => {
             />
           )}
 
-          {/* Job Description */}
           <JobDescriptionInput
             value={jobDescription}
             onChange={(value) => {
@@ -129,13 +156,12 @@ export const Dashboard: React.FC = () => {
             error={jobDescriptionError}
           />
 
-          {/* Submit Button */}
           <div className="pt-4 flex items-center gap-4">
             <Button
               size="lg"
               onClick={handleSubmit}
-              disabled={!isFormValid || isSubmitting}
-              isLoading={isSubmitting}
+              disabled={!isFormValid || isLoading}
+              isLoading={isLoading}
               className="w-full sm:w-auto"
             >
               Tailor Resume
