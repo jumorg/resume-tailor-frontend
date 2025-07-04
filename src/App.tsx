@@ -7,7 +7,6 @@ import { EmailVerification } from '@/components/auth/EmailVerification';
 import { PasswordReset } from '@/components/auth/PasswordReset';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Dashboard } from '@/pages/Dashboard';
-import { TailoringPage } from '@/pages/TailoringPage';
 
 function App() {
   return (
@@ -24,14 +23,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/tailoring/:tailoringId"
-              element={
-                <ProtectedRoute>
-                  <TailoringPage />
                 </ProtectedRoute>
               }
             />
