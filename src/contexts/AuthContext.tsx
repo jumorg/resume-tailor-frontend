@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getCurrentUser, fetchAuthSession } from '@aws-amplify/auth';
+import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
 import { AuthService } from '@/services/auth.service';
 import { JWTManager } from '@/utils/jwt.utils';
 import type { AuthState, User, LoginCredentials, SignupCredentials } from '@/types/auth.types';

@@ -1,20 +1,5 @@
-import { Amplify } from '@aws-amplify/core';
-import { signIn, signUp, confirmSignUp, signOut, resetPassword, confirmResetPassword } from '@aws-amplify/auth';
+import { signIn, signUp, confirmSignUp, signOut, resetPassword, confirmResetPassword } from 'aws-amplify/auth';
 import type { LoginCredentials, SignupCredentials } from '@/types/auth.types';
-
-// Configure Amplify
-Amplify.configure({
-  Auth: {
-    Cognito: {
-      userPoolId: import.meta.env.VITE_COGNITO_USER_POOL_ID,
-      userPoolClientId: import.meta.env.VITE_COGNITO_USER_POOL_CLIENT_ID,
-      signUpVerificationMethod: 'code',
-      loginWith: { email: true },
-    },
-  },
-});
-
-console.log('Amplify config ➜', Amplify.getConfig());
 
 export class AuthService {
   static async login(credentials: LoginCredentials) {
