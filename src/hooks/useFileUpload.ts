@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
-//import { uploadService } from '@/services/upload.service';
-import { uploadService } from '@/services/upload.service.mock';  // Use mock for now
+import { uploadService } from '@/services/upload.service';
+//import { uploadService } from '@/services/upload.service.mock';  // Use mock for now
 import type { UploadProgress } from '@/types/upload.types';
 
 export interface FileUploadState {
