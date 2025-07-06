@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
 import { uploadService } from '@/services/upload.service';
-//import { uploadService } from '@/services/upload.service.mock';  // Use mock for now
 import type { UploadProgress } from '@/types/upload.types';
 
 export interface FileUploadState {
@@ -41,7 +40,8 @@ export const useFileUpload = () => {
     return null;
   };
 
-  const handleFileSelect = useCallback(async (file: File) => {
+  // Modified: Only validates and stores file locally, doesn't upload
+  const handleFileSelect = useCallback((file: File) => {
     const error = validateFile(file);
     
     if (error) {
@@ -56,13 +56,29 @@ export const useFileUpload = () => {
       return;
     }
 
-    setState(prev => ({
-      ...prev,
+    // Just store the file locally
+    setState({
       file,
       preview: file.name,
       error: null,
+      isLoading: false,
+      uploadProgress: 0,
+      resumeId: null,
+    });
+  }, []);
+
+  // New method: Upload the stored file to S3
+  const uploadFile = useCallback(async (): Promise<string | null> => {
+    if (!state.file) {
+      setState(prev => ({ ...prev, error: 'No file selected' }));
+      return null;
+    }
+
+    setState(prev => ({
+      ...prev,
       isLoading: true,
       uploadProgress: 0,
+      error: null,
     }));
 
     try {
@@ -75,7 +91,7 @@ export const useFileUpload = () => {
         }));
       };
 
-      const response = await uploadService.uploadFile(file, handleProgress);
+      const response = await uploadService.uploadFile(state.file, handleProgress);
       
       setState(prev => ({
         ...prev,
@@ -83,12 +99,12 @@ export const useFileUpload = () => {
         uploadProgress: 100,
         resumeId: response.resumeId,
       }));
+
+      return response.resumeId;
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         setState(prev => ({
           ...prev,
-          file: null,
-          preview: null,
           error: 'Upload cancelled',
           isLoading: false,
           uploadProgress: 0,
@@ -101,8 +117,9 @@ export const useFileUpload = () => {
           uploadProgress: 0,
         }));
       }
+      return null;
     }
-  }, []);
+  }, [state.file]);
 
   const cancelUpload = useCallback(() => {
     if (abortControllerRef.current) {
@@ -111,6 +128,7 @@ export const useFileUpload = () => {
   }, []);
 
   const clearFile = useCallback(async () => {
+    // Only delete from S3 if it was actually uploaded
     if (state.resumeId) {
       try {
         await uploadService.deleteResume(state.resumeId);
@@ -131,13 +149,14 @@ export const useFileUpload = () => {
 
   const retryUpload = useCallback(() => {
     if (state.file) {
-      handleFileSelect(state.file);
+      uploadFile();
     }
-  }, [state.file, handleFileSelect]);
+  }, [state.file, uploadFile]);
 
   return {
     ...state,
     handleFileSelect,
+    uploadFile, // New method exposed
     clearFile,
     cancelUpload,
     retryUpload,

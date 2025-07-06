@@ -14,6 +14,7 @@ export const Dashboard: React.FC = () => {
   const workHistoryUpload = useFileUpload();
   const [jobDescription, setJobDescription] = useState('');
   const [jobDescriptionError, setJobDescriptionError] = useState<string | null>(null);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   
   const { startTailoring, cancelTailoring, retryTailoring, isLoading, error, status } = useTailoring({
     onError: (error) => {
@@ -47,26 +48,92 @@ export const Dashboard: React.FC = () => {
       return;
     }
 
-    if (resumeUpload.isLoading || !resumeUpload.resumeId) {
-      return;
-    }
+    setIsUploadingFiles(true);
 
-    await startTailoring({
-      resumeId: resumeUpload.resumeId,
-      workHistoryId: workHistoryUpload.resumeId || undefined,
-      jobDescription,
-    });
+    try {
+      // Upload resume file
+      const resumeId = await resumeUpload.uploadFile();
+      if (!resumeId) {
+        setIsUploadingFiles(false);
+        return;
+      }
+
+      // Upload work history if provided
+      let workHistoryId: string | undefined;
+      if (workHistoryUpload.file) {
+        workHistoryId = await workHistoryUpload.uploadFile() || undefined;
+      }
+
+      setIsUploadingFiles(false);
+
+      // Start tailoring with the uploaded IDs
+      await startTailoring({
+        resumeId,
+        workHistoryId,
+        jobDescription,
+      });
+    } catch (error) {
+      setIsUploadingFiles(false);
+      console.error('Upload failed:', error);
+    }
   };
 
   const handleCancel = () => {
-    cancelTailoring();
+    if (isUploadingFiles) {
+      resumeUpload.cancelUpload();
+      workHistoryUpload.cancelUpload();
+      setIsUploadingFiles(false);
+    } else {
+      cancelTailoring();
+    }
   };
 
   const isFormValid = 
     resumeUpload.file && 
-    !resumeUpload.isLoading &&
-    resumeUpload.resumeId &&
     jobDescription.trim().length >= 50;
+
+  const isProcessing = isUploadingFiles || isLoading;
+
+  // Show upload progress if uploading
+  if (isUploadingFiles && (resumeUpload.isLoading || workHistoryUpload.isLoading)) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-2xl mx-auto mt-12">
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-gray-900">Uploading Files...</h2>
+            
+            {resumeUpload.isLoading && (
+              <div>
+                <p className="text-sm text-gray-600 mb-2">Uploading resume...</p>
+                <FileUploadProgress
+                  percentage={resumeUpload.uploadProgress}
+                  fileName={resumeUpload.file?.name || ''}
+                  onCancel={resumeUpload.cancelUpload}
+                />
+              </div>
+            )}
+            
+            {workHistoryUpload.isLoading && (
+              <div>
+                <p className="text-sm text-gray-600 mb-2">Uploading work history...</p>
+                <FileUploadProgress
+                  percentage={workHistoryUpload.uploadProgress}
+                  fileName={workHistoryUpload.file?.name || ''}
+                  onCancel={workHistoryUpload.cancelUpload}
+                />
+              </div>
+            )}
+            
+            <div className="mt-4 text-center">
+              <Button variant="outline" onClick={handleCancel}>
+                Cancel All
+              </Button>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   // Show tailoring progress if processing
   if (isLoading && status) {
@@ -114,38 +181,22 @@ export const Dashboard: React.FC = () => {
         </div>
 
         <div className="space-y-6">
-          {resumeUpload.isLoading ? (
-            <FileUploadProgress
-              percentage={resumeUpload.uploadProgress}
-              fileName={resumeUpload.file?.name || ''}
-              onCancel={resumeUpload.cancelUpload}
-            />
-          ) : (
-            <FileUploadZone
-              label="Resume"
-              required
-              file={resumeUpload.file}
-              error={resumeUpload.error}
-              onFileSelect={resumeUpload.handleFileSelect}
-              onClear={resumeUpload.clearFile}
-            />
-          )}
+          <FileUploadZone
+            label="Resume"
+            required
+            file={resumeUpload.file}
+            error={resumeUpload.error}
+            onFileSelect={resumeUpload.handleFileSelect}
+            onClear={resumeUpload.clearFile}
+          />
 
-          {workHistoryUpload.isLoading ? (
-            <FileUploadProgress
-              percentage={workHistoryUpload.uploadProgress}
-              fileName={workHistoryUpload.file?.name || ''}
-              onCancel={workHistoryUpload.cancelUpload}
-            />
-          ) : (
-            <FileUploadZone
-              label="Work History (Optional)"
-              file={workHistoryUpload.file}
-              error={workHistoryUpload.error}
-              onFileSelect={workHistoryUpload.handleFileSelect}
-              onClear={workHistoryUpload.clearFile}
-            />
-          )}
+          <FileUploadZone
+            label="Work History (Optional)"
+            file={workHistoryUpload.file}
+            error={workHistoryUpload.error}
+            onFileSelect={workHistoryUpload.handleFileSelect}
+            onClear={workHistoryUpload.clearFile}
+          />
 
           <JobDescriptionInput
             value={jobDescription}
@@ -160,20 +211,20 @@ export const Dashboard: React.FC = () => {
             <Button
               size="lg"
               onClick={handleSubmit}
-              disabled={!isFormValid || isLoading}
-              isLoading={isLoading}
+              disabled={!isFormValid || isProcessing}
+              isLoading={isProcessing}
               className="w-full sm:w-auto"
             >
-              Tailor Resume
+              {isProcessing ? 'Processing...' : 'Tailor Resume'}
             </Button>
             
-            {resumeUpload.error && resumeUpload.file && (
+            {(resumeUpload.error || workHistoryUpload.error) && (
               <Button
                 variant="outline"
                 size="lg"
-                onClick={resumeUpload.retryUpload}
+                onClick={handleSubmit}
               >
-                Retry Upload
+                Retry
               </Button>
             )}
           </div>

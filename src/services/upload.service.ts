@@ -39,15 +39,38 @@ class UploadService {
       await apiService.uploadFile(uploadUrl, file, onProgress);
 
       // Step 3: Confirm upload completion
-      return apiService.post<FileUploadResponse>('/api/upload/confirm', {
+      const wrapper = await apiService.post<{
+        success: boolean;
+        data: FileUploadResponse;
+      }>('/api/upload/confirm', {
         resumeId,
         fileKey,
         fileName: file.name,
         fileSize: file.size,
       });
+
+      if (!wrapper.success) {
+        throw new Error('Failed to confirm upload');
+      }
+
+      return wrapper.data;
     } catch (error) {
       console.error('Upload failed:', error);
       throw error; // Re-throw to be handled by useFileUpload
+    }
+  }
+
+  async deleteResume(resumeId: string): Promise<void> {
+    try {
+      // Comment out or remove this if you haven't implemented the backend endpoint yet
+      // await apiService.delete(`/api/resume/${resumeId}`);
+      
+      // For now, just log it
+      console.log('Delete resume called for:', resumeId);
+      // In production, you'd want to actually delete from S3
+    } catch (error) {
+      console.error('Failed to delete resume:', error);
+      // Don't throw the error if delete isn't critical
     }
   }
 }
