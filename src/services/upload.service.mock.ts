@@ -5,9 +5,13 @@ class MockUploadService {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
     
+    // Extract file extension from fileType
+    const extension = fileType.includes('pdf') ? '.pdf' : '.docx';
+    const cleanFileName = fileName.replace(/\.[^/.]+$/, '') + extension;
+    
     return {
       uploadUrl: 'https://mock-s3-url.com',
-      fileKey: `resumes/${Date.now()}-${fileName}`,
+      fileKey: `resumes/${Date.now()}-${cleanFileName}`,
       resumeId: `resume-${Date.now()}`,
     };
   }

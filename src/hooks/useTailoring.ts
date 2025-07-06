@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { tailoringService } from '@/services/tailoring.service.mock';
+// Import the real service instead of mock
+import { tailoringService } from '@/services/tailoring.service';
+// import { tailoringService } from '@/services/tailoring.service.mock';
 import type { TailoringRequest, TailoringResponse, TailoringStatus } from '@/types/tailoring.types';
 
 interface UseTailoringOptions {
@@ -28,28 +30,44 @@ export const useTailoring = (options: UseTailoringOptions = {}) => {
       setTailoringId(response.tailoringId);
       
       // Start polling for status
+      let pollCount = 0;
+      const maxPolls = 60; // 60 seconds max polling
+      
       pollingIntervalRef.current = setInterval(async () => {
         try {
+          pollCount++;
+          
+          console.log(`Polling status attempt ${pollCount} for ${response.tailoringId}`);
+          
           const status = await tailoringService.getTailoringStatus(response.tailoringId);
           setStatus(status);
 
-          if (status.status === 'completed') {
+          if (status.status === 'completed' || status.status === 'failed' || pollCount >= maxPolls) {
             clearInterval(pollingIntervalRef.current!);
-            const result = await tailoringService.getTailoringResult(response.tailoringId);
-            setResult(result);
-            setIsLoading(false);
-            options.onSuccess?.(result);
+            pollingIntervalRef.current = null;
             
-            // Navigate to tailoring page with result
-            navigate(`/tailoring/${response.tailoringId}`);
+            if (status.status === 'completed') {
+              const result = await tailoringService.getTailoringResult(response.tailoringId);
+              setResult(result);
+              setIsLoading(false);
+              options.onSuccess?.(result);
+              
+              // Navigate to tailoring page with result
+              navigate(`/tailoring/${response.tailoringId}`);
+            } else if (status.status === 'failed') {
+              throw new Error(status.message || 'Tailoring failed');
+            } else {
+              throw new Error('Tailoring timed out');
+            }
           }
         } catch (err) {
           clearInterval(pollingIntervalRef.current!);
+          pollingIntervalRef.current = null;
           setError(err instanceof Error ? err.message : 'Failed to check tailoring status');
           setIsLoading(false);
           options.onError?.(err instanceof Error ? err : new Error('Unknown error'));
         }
-      }, 1000); // Poll every second
+      }, 2000); // Poll every 2 seconds instead of 1
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start tailoring');

@@ -52,21 +52,26 @@ export const Dashboard: React.FC = () => {
 
     try {
       // Upload resume file
+      console.log('Starting resume upload...');
       const resumeId = await resumeUpload.uploadFile();
       if (!resumeId) {
         setIsUploadingFiles(false);
         return;
       }
+      console.log('Resume uploaded with ID:', resumeId);
 
       // Upload work history if provided
       let workHistoryId: string | undefined;
       if (workHistoryUpload.file) {
+        console.log('Starting work history upload...');
         workHistoryId = await workHistoryUpload.uploadFile() || undefined;
+        console.log('Work history uploaded with ID:', workHistoryId);
       }
 
       setIsUploadingFiles(false);
 
       // Start tailoring with the uploaded IDs
+      console.log('Starting tailoring process...');
       await startTailoring({
         resumeId,
         workHistoryId,
@@ -74,7 +79,8 @@ export const Dashboard: React.FC = () => {
       });
     } catch (error) {
       setIsUploadingFiles(false);
-      console.error('Upload failed:', error);
+      console.error('Process failed:', error);
+      // The error will be handled by the tailoring hook
     }
   };
 
