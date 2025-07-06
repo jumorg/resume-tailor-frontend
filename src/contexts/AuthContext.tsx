@@ -26,19 +26,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadUser = useCallback(async () => {
     try {
-      const { username, userId, signInDetails } = await getCurrentUser();
+      // First, try to get the session - this won't throw if user is not authenticated
       const session = await fetchAuthSession();
       
-      if (session.tokens?.accessToken && session.tokens?.idToken) {
+      // Check if we have valid tokens before trying to get current user
+      if (!session.tokens?.accessToken || !session.tokens?.idToken) {
+        console.log('No valid session found');
+        setState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null,
+        });
+        return;
+      }
+
+      // Now we know we have a session, get the current user
+      try {
+        const { username, userId, signInDetails } = await getCurrentUser();
+        
+        // DEBUG: Log both tokens
+        console.log('Session tokens:', {
+          hasAccessToken: !!session.tokens?.accessToken,
+          hasIdToken: !!session.tokens?.idToken,
+          accessTokenSample: session.tokens?.accessToken?.toString().substring(0, 50) + '...',
+          idTokenSample: session.tokens?.idToken?.toString().substring(0, 50) + '...'
+        });
+        
+        // CRITICAL: Use ID token for API calls
         JWTManager.setTokens(
-          session.tokens.accessToken.toString(),
-          session.tokens.idToken.toString()
+          session.tokens.idToken.toString(),    // This MUST be first
+          session.tokens.accessToken.toString()
         );
+
+        // Decode and log the ID token to verify claims
+        const idTokenPayload = JWTManager.decodeToken(session.tokens.idToken.toString());
+        console.log('ID Token claims:', idTokenPayload);
 
         const user: User = {
           id: userId,
           email: signInDetails?.loginId || username,
-          emailVerified: true, // If they're logged in, email is verified
+          emailVerified: true,
           createdAt: new Date().toISOString(),
         };
 
@@ -48,9 +76,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isLoading: false,
           error: null,
         });
-      }
-    } catch {
+      } catch (userError) {
+        console.error('Error getting current user:', userError);
+        // Session exists but user data couldn't be fetched
         setState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null,
+        });
+      }
+    } catch (error) {
+      console.log('No active session:', error);
+      setState({
         user: null,
         isAuthenticated: false,
         isLoading: false,
@@ -68,6 +106,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { isSignedIn } = await AuthService.login(credentials);
       if (isSignedIn) {
+        // Small delay to ensure session is established
+        await new Promise(resolve => setTimeout(resolve, 100));
         await loadUser();
       }
     } catch (error) {

@@ -1,15 +1,22 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Amplify } from 'aws-amplify';
-import amplifyconfig from './amplifyconfiguration.json';
 import App from './App';
 import './index.css';
 
-// Configure Amplify
-Amplify.configure(amplifyconfig);
-
-// Verify it worked
-console.log('Config after apply:', Amplify.getConfig());
+// Configure Amplify with the correct format
+Amplify.configure({
+  Auth: {
+    Cognito: {
+      userPoolId: import.meta.env.VITE_COGNITO_USER_POOL_ID,
+      userPoolClientId: import.meta.env.VITE_COGNITO_USER_POOL_CLIENT_ID,
+      signUpVerificationMethod: 'code',
+      loginWith: {
+        email: true
+      }
+    }
+  }
+});
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

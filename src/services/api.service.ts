@@ -26,17 +26,29 @@ class ApiService {
       finalHeaders['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...fetchOptions,
-      headers: finalHeaders,
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...fetchOptions,
+        headers: finalHeaders,
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Request failed' }));
-      throw new Error(error.message || `HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error?.message || errorMessage;
+        } catch {
+          // If parsing JSON fails, use default message
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error(`API request failed for ${endpoint}:`, error);
+      throw error;
     }
-
-    return response.json();
   }
 
   async get<T>(endpoint: string, options?: ApiRequestOptions): Promise<T> {
